@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>سباق المعرفة - معلومات عامة</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-grad-1: #0f172a; --bg-grad-2: #050510;
+            --ui-glow: rgba(0, 200, 255, 0.3);
+            --road-color: #2c3e50;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%; margin: 0; padding: 0;
+            background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
+            color: white; font-family: 'Tajawal', sans-serif;
+            overflow: hidden; overscroll-behavior: none; touch-action: none;
+        }
+
+        /* ------------------ بيئة السباق ------------------ */
+        .race-track {
+            position: absolute; top: 15%; left: 0; width: 100%; height: 35%;
+            background: var(--road-color);
+            border-top: 5px solid #7f8c8d; border-bottom: 5px solid #7f8c8d;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            transition: border-color 0.3s ease;
+        }
+
+        .race-track::after {
+            content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 8px;
+            background: repeating-linear-gradient(90deg, #fff 0, #fff 40px, transparent 40px, transparent 80px);
+            transform: translateY(-50%);
+            animation: moveRoad 1.5s linear infinite;
+        }
+
+        @keyframes moveRoad { 100% { background-position: 80px 0; } }
+
+        /* سرعات الشارع والمؤثرات */
+        .race-track.fast { border-color: #00ff9d; box-shadow: inset 0 0 50px rgba(0, 255, 157, 0.3); }
+        .race-track.fast::after { animation-duration: 0.15s; } 
+        .race-track.slow { border-color: #ff3232; box-shadow: inset 0 0 50px rgba(255, 50, 50, 0.3); }
+        .race-track.slow::after { animation-duration: 3s; }   
+
+        /* السيارات */
+        .car-container {
+            position: absolute; right: 5vw; 
+            font-size: 3.5rem; transition: right 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10; display: flex; align-items: center;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+        }
+
+        #player-car-wrap { top: 5%; }
+        #opp-car-wrap { bottom: 5%; }
+
+        .car { transition: transform 0.3s; }
+
+        /* مؤثر رفعة التاير (Wheelie) للإجابة الصحيحة */
+        @keyframes wheelie {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            20%, 80% { transform: rotate(-20deg) translateY(-10px); }
+        }
+        .wheelie-effect .car { animation: wheelie 1s ease; }
+
+        /* النيترو العادي */
+        .nitro {
+            font-size: 2.5rem; opacity: 0; transform: translateX(20px); transition: 0.3s;
+            filter: drop-shadow(0 0 10px #ff3232) drop-shadow(0 0 20px #ff9d00);
+        }
+        .nitro.active { opacity: 1; transform: translateX(5px); }
+        
+        /* السوبر نيترو (لون أزرق وأقوى) */
+        .nitro.super {
+            font-size: 4rem; filter: drop-shadow(0 0 20px #00f3ff) drop-shadow(0 0 40px #00aaff);
+            transform: translateX(10px) scale(1.2);
+        }
+
+        /* مؤثر الدخان الأسود (عطل المحرك) */
+        .smoke-fx {
+            position: absolute; right: -20px; top: 10px;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #111; box-shadow: 15px -15px 20px #222, 30px 0px 30px #000;
+            opacity: 0; filter: blur(5px); pointer-events: none; z-index: -1;
+        }
+        @keyframes blowSmoke {
+            0% { transform: translateX(0) scale(0.5); opacity: 0.9; }
+            100% { transform: translateX(120px) translateY(-40px) scale(4); opacity: 0; filter: blur(10px); }
+        }
+        .smoke-fx.active { animation: blowSmoke 1.2s ease-out; }
+
+        /* ارتجاج الشاشة بالكامل */
+        @keyframes severeShake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-10px, 15px); }
+            40% { transform: translate(15px, -10px); }
+            60% { transform: translate(-15px, -15px); }
+            80% { transform: translate(10px, 15px); }
+        }
+        .severe-shake-effect { animation: severeShake 0.4s ease; }
+
+        /* خط النهاية */
+        .finish-line {
+            position: absolute; left: 5vw; top: 0; bottom: 0; width: 25px;
+            background: repeating-linear-gradient(45deg, #000 0, #000 10px, #fff 10px, #fff 20px);
+            border-left: 4px solid #ff9d00; z-index: 5;
+        }
+
+        /* ------------------ الواجهة العلوية (HUD) ------------------ */
+        .top-hud {
+            position: fixed; top: 15px; left: 15px; right: 15px;
+            display: flex; justify-content: space-between; z-index: 1000; pointer-events: none;
+        }
+        .streak-hud {
+            background: linear-gradient(45deg, #ff3232, #ff9d00); color: white;
+            padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;
+            box-shadow: 0 3px 10px rgba(255, 50, 50, 0.4); display: none;
+            border: 1px solid #fffacd; animation: popIn 0.4s ease-out;
+        }
+        .highscore-hud {
+            background: rgba(255, 215, 0, 0.15); color: #ffd700;
+            padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;
+            border: 1px solid rgba(255, 215, 0, 0.5); box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+        }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* ------------------ واجهة الأسئلة (UI) ------------------ */
+        .ui-layer {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 100;
+            background: rgba(15, 20, 35, 0.98); border-top: 2px solid var(--ui-glow);
+            padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            border-radius: 25px 25px 0 0; width: 100%; max-width: 600px; text-align: center;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
+            max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+        }
+        .ui-layer::-webkit-scrollbar { width: 5px; } .ui-layer::-webkit-scrollbar-thumb { background: #00aaff; border-radius: 5px; }
+
+        .top-tools { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; }
+        .q-counter { font-size: 0.95rem; color: #fff; font-weight: bold; margin: 0; background: #00aaff; padding: 4px 15px; border-radius: 12px; }
+
+        .timer-container { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 15px; }
+        .timer-bar { height: 100%; width: 100%; background: #00ff9d; transition: width 1s linear, background 0.3s; }
+        .timer-warning { background: #ff3232 !important; }
+
+        h2 { margin: 0 0 15px 0; color: #fff; font-size: 1.2rem; line-height: 1.5; }
+        
+        .options { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        button.opt-btn { background: rgba(255, 255, 255, 0.05); color: white; border: 1px solid var(--ui-glow); padding: 14px 15px; border-radius: 12px; font-size: 1rem; font-family: 'Tajawal', sans-serif; cursor: pointer; transition: all 0.2s; text-align: center; font-weight: bold;}
+        button.opt-btn:disabled { opacity: 0.9; cursor: default; }
+
+        .speech-bubble { background: white; color: black; padding: 6px 12px; border-radius: 12px; font-size: 1rem; font-weight: 900; margin-bottom: 15px; display: none; opacity: 0; transition: opacity 0.3s; }
+
+        #explanation-box { display: none; margin-top: 15px; background: rgba(0, 0, 0, 0.4); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.4s; text-align: center; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        #explanation-box h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+        #explanation-box p { margin: 0 0 15px 0; font-size: 0.95rem; line-height: 1.6; color: #e2e8f0; }
+
+        #next-btn { background: linear-gradient(90deg, #00aaff, #00ff9d); color: #000; font-weight: 900; width: 100%; border: none; padding: 15px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; }
+
+        /* شاشة النهاية */
+        #completion-screen { display: none; animation: fadeIn 0.8s; }
+        .trophy { font-size: 4rem; margin: 0; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));}
+        .score-text { font-size: 2.5rem; margin: 10px 0; font-weight: 900; }
+        #final-desc { font-size: 1rem; color: #aaa; margin-bottom: 20px; line-height: 1.5; }
+        
+        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btns button { flex: 1; border: none; font-weight: bold; color: #000; padding: 14px; border-radius: 10px; cursor: pointer; font-size: 1rem;}
+        .btn-restart { background: #fff; }
+        .btn-review { background: #00aaff; color: white !important;}
+
+        #review-screen { display: none; text-align: right; }
+        .review-item { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .review-q { font-weight: bold; color: #fff; margin-bottom: 10px; font-size: 1rem; line-height: 1.4; }
+        .review-ans { font-size: 0.95rem; margin-bottom: 8px; }
+        .review-ans span { font-weight: bold; padding: 3px 8px; border-radius: 5px; }
+        .ans-correct { background: rgba(0, 255, 150, 0.2); color: #00ff9d; }
+        .ans-wrong { background: rgba(255, 50, 50, 0.2); color: #ff3232; }
+        .review-exp { font-size: 0.9rem; color: #aaa; margin-top: 10px; border-top: 1px dashed #444; padding-top: 10px; }
+        .close-review-btn { width: 100%; background: #ef4444; color: white; border: none; font-weight: bold; margin-top: 10px; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 1.1rem;}
+    </style>
+</head>
+<body>
+
+    <div class="top-hud">
+        <div class="highscore-hud" id="highscore-badge">🏆 أعلى نتيجة: 0</div>
+        <div class="streak-hud" id="streak-badge">🔥 متصل: 2</div>
+    </div>
+
+    <!-- حلبة السباق -->
+    <div class="race-track" id="race-track">
+        <div class="finish-line"></div>
+        <div class="car-container" id="player-car-wrap">
+            <div class="smoke-fx" id="smoke-fx"></div> <!-- مؤثر الدخان -->
+            <div class="nitro" id="player-nitro">🔥</div>
+            <div class="car" id="player-car">🏎️</div>
+        </div>
+        <div class="car-container" id="opp-car-wrap">
+            <div class="nitro" id="opp-nitro">🔥</div>
+            <div class="car" id="opp-car">🚓</div>
+        </div>
+    </div>
+
+    <!-- واجهة الأسئلة -->
+    <div class="ui-layer" id="ui-container">
+        <div id="quiz-content">
+            <div class="top-tools">
+                <div class="q-counter" id="q-counter">السؤال 1 من 5</div>
+            </div>
+            
+            <div class="timer-container">
+                <div class="timer-bar" id="timer-bar"></div>
+            </div>
+
+            <h2 id="question-text">جاري التحميل...</h2>
+            
+            <div class="speech-bubble" id="speech-bubble"></div>
+
+            <div class="options" id="options-container"></div>
+            
+            <div id="explanation-box">
+                <h3 id="result-title"></h3>
+                <p id="explanation-text"></p>
+                <button id="next-btn" onclick="moveToNext()">متابعة السباق 🏁</button>
+            </div>
+        </div>
+        
+        <div id="completion-screen">
+            <div class="trophy" id="final-trophy">🏆</div>
+            <h2 id="final-praise">جاري الحساب...</h2>
+            <p id="final-desc">جاري التقييم...</p>
+            
+            <div class="score-text" id="final-score">0 / 5</div>
+            
+            <div class="action-btns">
+                <button class="btn-review" onclick="showReview()">مراجعة 📋</button>
+                <button class="btn-restart" onclick="startFresh()">سباق جديد 🔄</button>
+            </div>
+        </div>
+
+        <div id="review-screen">
+            <h2 style="text-align: center; color: #fff; margin-top: 0;">مراجعة الأجوبة</h2>
+            <div id="review-list"></div>
+            <button class="close-review-btn" onclick="startFresh()">إنهاء السباق</button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator(); 
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+            
+            if (type === 'correct') { 
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); 
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'wrong') { 
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2); 
+                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'tick') {
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            }
+        }
+
+        let quizData = [
+            { q: "ما هو أطول نهر في العالم؟", options: ["نهر الأمازون", "نهر النيل", "نهر المسيسيبي", "نهر الفرات"], correct: 1, explanation: "نهر النيل يعتبر الأطول في العالم، حيث يمر بعدة دول أفريقية." },
+            { q: "أي كوكب يُعرف باسم 'الكوكب الأحمر'؟", options: ["الزهرة", "المشتري", "المريخ", "زحل"], correct: 2, explanation: "المريخ يسمى الكوكب الأحمر بسبب أكسيد الحديد الذي يغطي سطحه وينطيه لون مائل للحمرة." },
+            { q: "من هو العالم الذي اخترع المصباح الكهربائي؟", options: ["ألبرت أينشتاين", "نيكولا تسلا", "ألكسندر غراهام بيل", "توماس إديسون"], correct: 3, explanation: "توماس إديسون هو من طوّر أول مصباح كهربائي متوهج وعملي." },
+            { q: "كم عدد قارات العالم؟", options: ["5 قارات", "6 قارات", "7 قارات", "8 قارات"], correct: 2, explanation: "العالم يتكون من 7 قارات: آسيا، أفريقيا، أوروبا، أمريكا الشمالية، أمريكا الجنوبية، أستراليا، والقارة القطبية الجنوبية." },
+            { q: "ما هي عاصمة اليابان؟", options: ["بكين", "سيول", "طوكيو", "بانكوك"], correct: 2, explanation: "طوكيو هي عاصمة اليابان وتعتبر من أكبر المدن المكتظة بالسكان في العالم." }
+        ];
+
+        const happyReplies = ["عفية بالسبع! 🏎️", "صاروخ! 🔥", "عاش السايق! 🤩", "محد يلحگك! 🏁", "دعسة مضبوطة! ✨"];
+        const sadReplies = ["المحرك عطل! 🤦‍♂️", "الشرطة سبقتك! 🚓", "ركز بالشارع! 🧐", "راحت عليك! 💔", "الوقت خلص! ⏰"];
+
+        let currentQ = 0; let score = 0; let streak = 0; let userAnswers = [];
+        let timeLeft = 20; let timerInterval; let tickInterval;
+        let playerProgress = 0; let oppProgress = 0;
+
+        let highScore = localStorage.getItem('raceQuizBest') || 0;
+        document.getElementById('highscore-badge').innerText = `🏆 أعلى نتيجة: ${highScore}`;
+
+        const playerCar = document.getElementById('player-car-wrap');
+        const oppCar = document.getElementById('opp-car-wrap');
+        const raceTrack = document.getElementById('race-track');
+        const pNitro = document.getElementById('player-nitro');
+        const oNitro = document.getElementById('opp-nitro');
+        const smokeFx = document.getElementById('smoke-fx');
+
+        const bubble = document.getElementById('speech-bubble'); const streakBadge = document.getElementById('streak-badge');
+        const qText = document.getElementById('question-text'); const optsContainer = document.getElementById('options-container');
+        const expBox = document.getElementById('explanation-box'); const resTitle = document.getElementById('result-title');
+        const expText = document.getElementById('explanation-text'); const nextBtn = document.getElementById('next-btn');
+        const timerBar = document.getElementById('timer-bar'); const uiContainer = document.getElementById('ui-container');
+
+        function startFresh() {
+            document.body.classList.remove('severe-shake-effect');
+            document.getElementById('completion-screen').style.display = 'none';
+            document.getElementById('review-screen').style.display = 'none';
+            document.getElementById('quiz-content').style.display = 'block';
+            
+            currentQ = 0; score = 0; streak = 0; userAnswers = [];
+            playerProgress = 0; oppProgress = 0;
+            
+            streakBadge.style.display = 'none';
+            updateCars();
+            loadQ();
+        }
+
+        function updateCars() {
+            playerCar.style.right = `calc(5vw + ${playerProgress * 15}vw)`;
+            oppCar.style.right = `calc(5vw + ${oppProgress * 15}vw)`;
+        }
+
+        function startTimer() {
+            let maxTime = 20;
+            timeLeft = maxTime;
+            timerBar.style.width = '100%'; timerBar.classList.remove('timer-warning');
+            clearInterval(timerInterval); clearInterval(tickInterval);
+            
+            if(audioCtx) tickInterval = setInterval(() => playSound('tick'), 1000);
+
+            timerInterval = setInterval(() => {
+                timeLeft--; timerBar.style.width = `${(timeLeft / maxTime) * 100}%`;
+                if (timeLeft === 5) { timerBar.classList.add('timer-warning'); clearInterval(tickInterval); if(audioCtx) tickInterval = setInterval(() => playSound('tick'), 300); }
+                if (timeLeft <= 0) { clearInterval(timerInterval); clearInterval(tickInterval); checkAns(-1, null); }
+            }, 1000);
+        }
+
+        function loadQ() {
+            if (currentQ >= quizData.length) return;
+            raceTrack.className = 'race-track'; 
+            pNitro.className = 'nitro'; oNitro.className = 'nitro';
+            playerCar.classList.remove('wheelie-effect');
+            document.body.classList.remove('severe-shake-effect');
+
+            const current = quizData[currentQ];
+            document.getElementById('q-counter').innerText = `السؤال ${currentQ + 1} من ${quizData.length}`;
+            qText.innerText = current.q; 
+            
+            optsContainer.innerHTML = '';
+            expBox.style.display = 'none'; bubble.style.display = 'none'; bubble.style.opacity = '0';
+            
+            nextBtn.innerText = (currentQ === quizData.length - 1) ? "إنهاء السباق 🏁" : "متابعة السباق 🏁";
+
+            current.options.forEach((opt, idx) => {
+                let btn = document.createElement('button'); btn.className = 'opt-btn'; btn.innerText = opt;
+                btn.onclick = () => { initAudio(); checkAns(idx, btn); };
+                optsContainer.appendChild(btn);
+            });
+            startTimer(); uiContainer.scrollTop = 0;
+        }
+
+        function checkAns(idx, btn) {
+            clearInterval(timerInterval); clearInterval(tickInterval);
+
+            const current = quizData[currentQ]; const btns = optsContainer.querySelectorAll('button');
+            const isCorrect = (idx === current.correct); const isTimeout = (idx === -1);
+            
+            userAnswers.push({
+                question: current.q, userPicked: isTimeout ? "لم يُجب (انتهى الوقت)" : current.options[idx],
+                correctAnswer: current.options[current.correct], isCorrect: isCorrect, explanation: current.explanation
+            });
+            
+            btns.forEach(b => b.disabled = true);
+            btns[current.correct].style.background = 'rgba(0, 255, 150, 0.4)'; btns[current.correct].style.borderColor = '#00ff9d';
+
+            bubble.style.display = 'block'; setTimeout(() => bubble.style.opacity = '1', 10);
+
+            if (isCorrect) {
+                playSound('correct'); 
+                raceTrack.className = 'race-track fast'; 
+                pNitro.className = 'nitro active super'; // سوبر نيترو
+                playerCar.classList.add('wheelie-effect'); // رفعة التاير
+                playerProgress++; 
+                
+                resTitle.innerText = "✅ إجابة صحيحة"; resTitle.style.color = "#00ff9d";
+                bubble.innerText = happyReplies[Math.floor(Math.random() * happyReplies.length)]; bubble.style.color = "#059669";
+                score++; streak++; 
+                if (streak >= 2) { streakBadge.style.display = 'block'; streakBadge.innerText = `🔥 متصل: ${streak}`; }
+            } else {
+                playSound('wrong'); 
+                raceTrack.className = 'race-track slow'; 
+                oNitro.classList.add('active'); 
+                oppProgress++; 
+                
+                // مؤثرات الخطأ (دخان وارتجاج)
+                document.body.classList.add('severe-shake-effect');
+                smokeFx.classList.add('active');
+                setTimeout(()=> smokeFx.classList.remove('active'), 1200);
+
+                streak = 0; streakBadge.style.display = 'none';
+                if (isTimeout) { resTitle.innerText = "⏰ انتهى الوقت!"; bubble.innerText = "الوقت خلص! ⏰"; } 
+                else { resTitle.innerText = "❌ إجابة خاطئة!"; btn.style.background = 'rgba(255, 50, 50, 0.4)'; btn.style.borderColor = '#ff3232'; bubble.innerText = sadReplies[Math.floor(Math.random() * sadReplies.length)]; }
+                resTitle.style.color = "#ff3232"; bubble.style.color = "#dc2626";
+            }
+
+            updateCars(); 
+            expText.innerText = current.explanation; expBox.style.display = 'block';
+            setTimeout(() => { uiContainer.scrollTo({ top: uiContainer.scrollHeight, behavior: 'smooth' }); }, 100);
+        }
+
+        function moveToNext() {
+            currentQ++;
+            if(currentQ < quizData.length) { loadQ(); } 
+            else { showCompletion(); }
+        }
+
+        function showCompletion() {
+            document.body.classList.remove('severe-shake-effect');
+            document.getElementById('quiz-content').style.display = 'none'; bubble.style.display = 'none'; streakBadge.style.display = 'none'; 
+            raceTrack.className = 'race-track'; pNitro.className = 'nitro'; oNitro.className = 'nitro'; playerCar.classList.remove('wheelie-effect');
+            
+            if (score > highScore) { highScore = score; localStorage.setItem('raceQuizBest', highScore); document.getElementById('highscore-badge').innerText = `🏆 أعلى نتيجة: ${highScore}`; }
+
+            const praiseText = document.getElementById('final-praise'); const descText = document.getElementById('final-desc');
+            const finalScoreObj = document.getElementById('final-score'); const trophy = document.getElementById('final-trophy');
+
+            if (playerProgress >= oppProgress && score >= 3) {
+                praiseText.innerText = "فزت بالسباق! 🏆"; praiseText.style.color = "#00ff9d"; finalScoreObj.style.color = "#00ff9d";
+                descText.innerText = "عاش السايق، سبقت سيارة الشرطة ووصلت لخط النهاية أولاً!"; 
+                trophy.innerText = "🏎️💨"; playSound('correct');
+            } else {
+                praiseText.innerText = "خسرت السباق! 🚓"; praiseText.style.color = "#ff3232"; finalScoreObj.style.color = "#ff3232";
+                descText.innerText = "الشرطة سبقتك.. المحرك عطل عندك هواية، راجع معلوماتك وارجع تحدى!"; 
+                trophy.innerText = "🚔"; playSound('wrong');
+            }
+
+            document.getElementById('final-score').innerText = `${score} / 5`; 
+            document.getElementById('completion-screen').style.display = 'block'; uiContainer.scrollTop = 0;
+        }
+
+        function showReview() {
+            document.getElementById('completion-screen').style.display = 'none';
+            const reviewList = document.getElementById('review-list'); reviewList.innerHTML = ''; 
+
+            userAnswers.forEach((ans, index) => {
+                let div = document.createElement('div'); div.className = 'review-item';
+                let userStatus = ans.isCorrect ? `<span class="ans-correct">✅ ${ans.userPicked}</span>` : `<span class="ans-wrong">❌ ${ans.userPicked}</span> (الصحيح: ${ans.correctAnswer})`;
+                div.innerHTML = `<div class="review-q">${ans.question}</div><div class="review-ans">إجابتك: ${userStatus}</div><div class="review-exp">💡 <b>توضيح:</b> ${ans.explanation}</div>`;
+                reviewList.appendChild(div);
+            });
+            document.getElementById('review-screen').style.display = 'block'; uiContainer.scrollTop = 0;
+        }
+
+        startFresh();
+    </script>
+</body>
+</html>
